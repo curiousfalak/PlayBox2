@@ -1,47 +1,43 @@
 package com.example.playbox2
 
+import GetVideoListUseCase
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.example.playbox2.data.remote.VideoApi
+import com.example.playbox2.data.remote.VideoRepositoryImpl
+import com.example.playbox2.presentation.navigation.AppNavGraph
+import com.example.playbox2.presentation.videolist.VideoListScreen
+import com.example.playbox2.presentation.videolist.VideoListViewModel
+import com.example.playbox2.presentation.videoplayer.VideoPlayerScreen
 import com.example.playbox2.ui.theme.PlayBox2Theme
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+
+        val api = Retrofit.Builder()
+            .baseUrl("http://10.50.157.69:3000/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(VideoApi::class.java)
+
+        val repo = VideoRepositoryImpl(api)
+        val useCase = GetVideoListUseCase(repo)
+        val viewModel = VideoListViewModel(useCase)
+
         setContent {
             PlayBox2Theme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                AppNavGraph(viewModel = viewModel)
+
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    PlayBox2Theme {
-        Greeting("Android")
     }
 }
