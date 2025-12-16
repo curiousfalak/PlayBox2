@@ -54,7 +54,7 @@ fun SplashScreen(navController: NavController, mainViewModel: MainViewModel = vi
         }
     }
 
-    val backgroundColor = Color(0xFFFAF0F0)
+    val backgroundColor = Color(0xFFFCFAFA)
     val splashIcon = ImageBitmap.imageResource(id = R.drawable.splashicon)
 
     Box(
@@ -103,9 +103,13 @@ fun SplashScreen(navController: NavController, mainViewModel: MainViewModel = vi
                     .clip(RoundedCornerShape(45.dp)),
                 contentScale = ContentScale.Crop
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(36.dp))
 
-            Text(text = "PlayBox", fontSize = 42.sp)
+            Text(
+                text = "PlayBox", fontSize = 42.sp, modifier = Modifier.padding(top = 20.dp)
+                )
+
+
         }
     }
 }
