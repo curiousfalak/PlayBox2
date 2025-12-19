@@ -1,14 +1,18 @@
 package com.example.playbox2.data.mapper
 
-import com.example.playbox2.data.remote.dto.VideoDto
 import com.example.playbox2.domain.model.Video
+import com.example.playbox2.data.remote.dto.VideoDto
+
 
 fun VideoDto.toVideo(): Video {
-    val safeCategory = category?.takeIf { it.isNotBlank() } ?: "Movies"
-
+    val baseUrl = "http://10.191.62.69:8000"
     return Video(
+        id = filename,
         title = filename,
-        streamUrl = "http://10.50.157.69:3000$url",
-        category = safeCategory
+        streamUrl = "$baseUrl$url",
+        thumbnailUrl = thumbnailUrl,
+        category = category
     )
 }
+
+

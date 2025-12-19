@@ -1,13 +1,9 @@
 package com.example.playbox2.domain.model
 
-
-
-
-data class Video(
+data class OfflineVideo(
     val id: String,
     val title: String,
     val streamUrl: String,
-    val thumbnailUrl: String?,
     val category: String
 )
 

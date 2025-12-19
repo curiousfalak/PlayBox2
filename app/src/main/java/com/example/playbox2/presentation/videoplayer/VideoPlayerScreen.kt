@@ -1,14 +1,20 @@
 package com.example.playbox2.presentation.videoplayer
 
+import android.content.res.Configuration
 import android.net.Uri
 import androidx.annotation.OptIn
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -19,6 +25,15 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 
+
+/* ---------- ORIENTATION HELPER ---------- */
+@Composable
+fun isLandscape(): Boolean {
+    val configuration = LocalConfiguration.current
+    return configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+}
+
+/* ---------- VIDEO PLAYER SCREEN ---------- */
 @OptIn(UnstableApi::class)
 @Composable
 fun VideoPlayerScreen(
@@ -26,28 +41,34 @@ fun VideoPlayerScreen(
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
+    val landscape = isLandscape()
 
-    var isBuffering by remember { mutableStateOf(false) }
+    var isBuffering by remember { mutableStateOf(true) }
     var hasError by remember { mutableStateOf(false) }
+    var isPlaying by remember { mutableStateOf(false) }
+
+    val scrollState = rememberScrollState()
 
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
-
-            val mediaItem = MediaItem.fromUri(Uri.parse(videoUrl))
-            setMediaItem(mediaItem)
+            setMediaItem(MediaItem.fromUri(Uri.parse(videoUrl)))
+            playWhenReady = true
+            prepare()
 
             addListener(object : Player.Listener {
+
                 override fun onPlaybackStateChanged(state: Int) {
-                    isBuffering = (state == Player.STATE_BUFFERING)
+                    isBuffering = state == Player.STATE_BUFFERING
+                }
+
+                override fun onIsPlayingChanged(playing: Boolean) {
+                    isPlaying = playing
                 }
 
                 override fun onPlayerError(error: PlaybackException) {
                     hasError = true
                 }
             })
-
-            prepare()
-            playWhenReady = true
         }
     }
 
@@ -55,64 +76,89 @@ fun VideoPlayerScreen(
         onDispose { exoPlayer.release() }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(12.dp)
+            .background(Color.White)
     ) {
 
-        // --- TOP BAR ---
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(
+                    if (landscape) Modifier.verticalScroll(scrollState)
+                    else Modifier
+                )
         ) {
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back"
+
+            /* ---------- TOP BAR ---------- */
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBackClick) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.Black
+                    )
+                }
+                Text(
+                    text = "Now Playing",
+                    color = Color.Black,
+                    style = MaterialTheme.typography.titleMedium
                 )
             }
-            Text(
-                text = "Now Playing",
-                style = MaterialTheme.typography.titleLarge
+
+            /* ---------- VIDEO VIEW ---------- */
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(if (landscape) 260.dp else 220.dp)
+                    .background(Color.Black),
+                factory = {
+                    PlayerView(it).apply {
+                        player = exoPlayer
+
+                        useController = true              // ✅ SHOW PROGRESS
+                        controllerAutoShow = true         // ✅ SHOW ON TAP
+                        controllerShowTimeoutMs = 0       // ✅ KEEP VISIBLE
+
+                        setBackgroundColor(android.graphics.Color.BLACK)
+                    }
+                }
+            )
+
+
+
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+
+
+            /* ---------- EXTRA SPACE FOR SCROLL ---------- */
+            if (landscape) {
+                Spacer(modifier = Modifier.height(200.dp))
+            }
+        }
+
+        /* ---------- BUFFERING ---------- */
+        if (isBuffering) {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center),
+                color = Color.Red
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        if (isBuffering) {
-            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-        }
-
+        /* ---------- ERROR ---------- */
         if (hasError) {
-            Text("Error loading video", color = MaterialTheme.colorScheme.error)
-        }
-
-        // --- VIDEO PLAYER (Reduced width + rounded)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.92f) // 92% width (looks cleaner)
-                .align(Alignment.CenterHorizontally)
-                .aspectRatio(16 / 9f)
-        ) {
-            AndroidView(factory = {
-                PlayerView(context).apply {
-                    player = exoPlayer
-                    setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
-                    setControllerShowTimeoutMs(2000)
-                }
-            })
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // --- CONTROL BUTTONS ---
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            Button(onClick = { exoPlayer.play() }) { Text("Play") }
-            Button(onClick = { exoPlayer.pause() }) { Text("Pause") }
+            Text(
+                text = "Error loading video",
+                color = Color.Red,
+                modifier = Modifier.align(Alignment.Center)
+            )
         }
     }
 }

@@ -4,16 +4,17 @@ import GetVideoListUseCase
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.room.Room
+import com.example.playbox2.data.local.database.PlayBoxDatabase
 import com.example.playbox2.data.remote.VideoApi
 import com.example.playbox2.data.remote.VideoRepositoryImpl
+
+
 import com.example.playbox2.presentation.navigation.AppNavGraph
-import com.example.playbox2.presentation.videolist.VideoListScreen
 import com.example.playbox2.presentation.videolist.VideoListViewModel
-import com.example.playbox2.presentation.videoplayer.VideoPlayerScreen
+import com.example.playbox2.presentation.videolist.VideoListViewModelFactory
+
 import com.example.playbox2.ui.theme.PlayBox2Theme
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -23,20 +24,41 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // 🔹 Retrofit (ONLINE)
         val api = Retrofit.Builder()
-            .baseUrl("http://10.50.157.69:3000/")
+            .baseUrl("http://10.191.62.69:8000/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(VideoApi::class.java)
 
-        val repo = VideoRepositoryImpl(api)
-        val useCase = GetVideoListUseCase(repo)
-        val viewModel = VideoListViewModel(useCase)
+        // 🔹 Room (OFFLINE)
+        val db = Room.databaseBuilder(
+            applicationContext,
+            PlayBoxDatabase::class.java,
+            "playbox_db"
+        ).build()
+
+        // 🔹 Repository (ONLINE + OFFLINE)
+        val repository = VideoRepositoryImpl(
+            api = api,
+            dao = db.videoDao()
+        )
+
+        // 🔹 UseCase
+        val getVideoListUseCase = GetVideoListUseCase(repository)
 
         setContent {
             PlayBox2Theme {
-                AppNavGraph(viewModel = viewModel)
 
+                val viewModel: VideoListViewModel = viewModel(
+                    factory = VideoListViewModelFactory(
+                        getVideos = getVideoListUseCase,
+                        repository = repository
+                    )
+                )
+
+
+                AppNavGraph(viewModel = viewModel)
             }
         }
     }

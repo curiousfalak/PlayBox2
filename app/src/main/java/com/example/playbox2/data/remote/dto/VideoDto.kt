@@ -8,3 +8,4 @@ data class VideoDto(
     val thumbnailUrl: String? = null,
     val category: String
 )
+

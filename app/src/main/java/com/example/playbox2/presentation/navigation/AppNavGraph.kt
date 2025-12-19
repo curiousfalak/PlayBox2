@@ -35,8 +35,10 @@ fun AppNavGraph(viewModel: VideoListViewModel) {
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
 
-    // Hide bars only on Splash
-    val hideBars = currentRoute in listOf("splash")
+    val hideBars =
+       currentRoute?.startsWith("videoplayer") == true ||
+                currentRoute == "splash"
+
 
     Scaffold(
 
@@ -115,12 +117,12 @@ fun BottomNavBar(navController: NavController) {
                 navController = navController
             )
 
-            BottomBarIcon(
-                icon = Icons.Default.PlayArrow,
-                label = "Player",
-                route = "videolist",
-                navController = navController
-            )
+//            BottomBarIcon(
+//                icon = Icons.Default.PlayArrow,
+//                label = "Player",
+//                route = "videolist",
+//                navController = navController
+//            )
 
             BottomBarIcon(
                 icon = Icons.Default.Settings,
@@ -155,11 +157,4 @@ fun BottomBarIcon(
     }
 }
 
-fun getScreenTitle(route: String?): String {
-    return when (route) {
-        "videolist" -> "Videos"
-        "videoplayer/{videoUrl}" -> "Player"
-        "settings" -> "Settings"
-        else -> "PlayBox"
-    }
-}
+
