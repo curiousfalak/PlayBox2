@@ -21,9 +21,14 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
+import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
+import com.example.playbox2.data.local.VideoCache
 
 
 /* ---------- ORIENTATION HELPER ---------- */
@@ -48,12 +53,10 @@ fun VideoPlayerScreen(
     var isPlaying by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
-
+    Log.setLogLevel(Log.LOG_LEVEL_ALL)
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
-            setMediaItem(MediaItem.fromUri(Uri.parse(videoUrl)))
-            playWhenReady = true
-            prepare()
+
 
             addListener(object : Player.Listener {
 
@@ -71,6 +74,24 @@ fun VideoPlayerScreen(
             })
         }
     }
+    val dataSourceFactory = CacheDataSource.Factory()
+        .setCache(VideoCache.get(context))
+        .setUpstreamDataSourceFactory(
+            DefaultDataSource.Factory(context)
+        )
+        .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+
+    val mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory)
+        .createMediaSource(
+            MediaItem.fromUri(Uri.parse(videoUrl))
+        )
+
+    LaunchedEffect(videoUrl) {
+        exoPlayer.setMediaSource(mediaSource)
+        exoPlayer.playWhenReady = true
+        exoPlayer.prepare()
+    }
+
 
     DisposableEffect(Unit) {
         onDispose { exoPlayer.release() }
@@ -122,9 +143,9 @@ fun VideoPlayerScreen(
                     PlayerView(it).apply {
                         player = exoPlayer
 
-                        useController = true              // ✅ SHOW PROGRESS
-                        controllerAutoShow = true         // ✅ SHOW ON TAP
-                        controllerShowTimeoutMs = 0       // ✅ KEEP VISIBLE
+                        useController = true
+                        controllerAutoShow = true
+                        controllerShowTimeoutMs = 0
 
                         setBackgroundColor(android.graphics.Color.BLACK)
                     }

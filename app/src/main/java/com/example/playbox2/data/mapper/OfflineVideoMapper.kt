@@ -7,14 +7,14 @@ fun OfflineVideo.toEntity() = OfflineVideoEntity(
 
     id = id,
     title = title,
-    streamUrl = streamUrl,
+   filePath = localPath,
     category = category
 )
 
 fun OfflineVideoEntity.toDomain() = OfflineVideo(
     id = id,
     title = title,
-    streamUrl = streamUrl,
+    localPath = filePath,
     category = category
 )
 

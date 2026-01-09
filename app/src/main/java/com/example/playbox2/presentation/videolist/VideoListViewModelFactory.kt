@@ -2,24 +2,21 @@ package com.example.playbox2.presentation.videolist
 
 
 
-import GetVideoListUseCase
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.example.playbox2.data.local.NetworkMonitor
 import com.example.playbox2.domain.repository.VideoRepository
 
 
-class VideoListViewModelFactory(
-    private val getVideos: GetVideoListUseCase,
-    private val repository: VideoRepository
-) : ViewModelProvider.Factory {
 
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(VideoListViewModel::class.java)) {
-            return VideoListViewModel(
-                getVideos = getVideos,
-                repository = repository
-            ) as T
+class VideoListViewModelFactory(
+        private val repository: VideoRepository,
+        private val networkMonitor: NetworkMonitor
+    ) : ViewModelProvider.Factory {
+
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            return VideoListViewModel(repository, networkMonitor) as T
         }
-        throw IllegalArgumentException("Unknown ViewModel class")
     }
-}
+
+

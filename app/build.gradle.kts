@@ -90,8 +90,15 @@ dependencies {
 
     // Navigation Compose
     implementation("androidx.navigation:navigation-compose:2.8.0")
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.35.0-alpha")
+
+
+    //media
     implementation("androidx.media3:media3-exoplayer:1.3.1")
     implementation("androidx.media3:media3-ui:1.3.1")
+
+    implementation("androidx.media3:media3-exoplayer-dash:1.3.1")
+    implementation("androidx.media3:media3-datasource:1.3.1")
 
 
     //room
@@ -104,6 +111,10 @@ dependencies {
 
     //materialIcons
     implementation("androidx.compose.material:material-icons-extended")
+
+    //work manager
+    val work_version = "2.11.0"
+    implementation("androidx.work:work-runtime-ktx:${work_version}")
 
 
 }

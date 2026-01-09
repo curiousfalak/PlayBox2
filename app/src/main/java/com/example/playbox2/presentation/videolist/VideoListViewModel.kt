@@ -1,59 +1,49 @@
 package com.example.playbox2.presentation.videolist
 
-import GetVideoListUseCase
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.playbox2.domain.model.OfflineVideo
+import com.example.playbox2.data.local.NetworkMonitor
+import com.example.playbox2.domain.model.AppMode
 import com.example.playbox2.domain.model.Video
 import com.example.playbox2.domain.repository.VideoRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class VideoListViewModel(
-    private val getVideos: GetVideoListUseCase,
-    private val repository: VideoRepository
+    val repository: VideoRepository,
+    networkMonitor: NetworkMonitor
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow<List<Video>>(emptyList())
-    val state: StateFlow<List<Video>> = _state
+
+    val appMode: StateFlow<AppMode> =
+        networkMonitor.isConnected
+            .map { connected ->
+                if (connected) AppMode.ONLINE else AppMode.OFFLINE
+            }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5000),
+                AppMode.ONLINE
+            )
+
+    private val _videos = MutableStateFlow<List<Video>>(emptyList())
+    val videos: StateFlow<List<Video>> = _videos
 
     init {
-        loadVideos()
-    }
-
-    private fun loadVideos() {
         viewModelScope.launch {
-            try {
-                val videos = getVideos()
-                // Log each video's URL to check correctness
-                videos.forEach { video ->
-                    Log.d("VideoListViewModel", "Video ID: ${video.id}, Title: ${video.title}, URL: ${video.streamUrl}")
-                }
-                _state.value = videos
-            } catch (e: Exception) {
-                Log.e("VideoListViewModel", "Error fetching videos: ${e.message}", e)
-            }
+            loadVideos()
         }
     }
 
-    fun downloadVideo(video: Video) {
-        viewModelScope.launch {
-            try {
-                Log.d("VideoListViewModel", "Downloading video: ${video.id} - ${video.title}")
-                repository.saveOfflineVideo(
-                    OfflineVideo(
-                        id = video.id,
-                        title = video.title,
-                        streamUrl = video.streamUrl,
-                        category = video.category
-                    )
-                )
-                Log.d("VideoListViewModel", "Video downloaded successfully: ${video.id}")
-            } catch (e: Exception) {
-                Log.e("VideoListViewModel", "Error downloading video: ${video.id}", e)
-            }
-        }
+    private suspend fun loadVideos() {
+        _videos.value = repository.getVideos()
+    }
+
+    fun download(video: Video) {
+        repository.downloadVideo(video)
     }
 }

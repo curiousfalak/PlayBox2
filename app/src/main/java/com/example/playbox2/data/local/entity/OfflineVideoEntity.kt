@@ -7,6 +7,6 @@ import androidx.room.PrimaryKey
 data class OfflineVideoEntity(
     @PrimaryKey val id: String,
     val title: String,
-    val streamUrl: String,
+    val filePath: String,
     val category: String
 )

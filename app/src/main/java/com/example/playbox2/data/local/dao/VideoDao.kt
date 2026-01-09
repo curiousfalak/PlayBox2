@@ -1,6 +1,9 @@
 package com.example.playbox2.data.local.dao
 
-import androidx.room.*
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
 import com.example.playbox2.data.local.entity.OfflineVideoEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -21,4 +24,6 @@ interface VideoDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM offline_videos WHERE id = :videoId)")
     suspend fun isVideoDownloaded(videoId: String): Boolean
+
+
 }

@@ -30,6 +30,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.playbox2.R
+import com.example.playbox2.domain.model.AppMode
 import kotlinx.coroutines.delay
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -43,21 +44,17 @@ fun VideoListScreen(
     viewModel: VideoListViewModel,
     navController: NavController
 ) {
-    val videos by viewModel.state.collectAsState()
+    val videos by viewModel.videos.collectAsState()
+    val appMode by viewModel.appMode.collectAsState() // <-- Collecting appMode
+
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
 
-
-
     val filteredVideos = videos.filter { video ->
         val matchesSearch =
-            searchQuery.isBlank() ||
-                    video.title.contains(searchQuery, ignoreCase = true)
-
+            searchQuery.isBlank() || video.title.contains(searchQuery, ignoreCase = true)
         val matchesCategory =
-            selectedCategory == "All" ||
-                    video.category.equals(selectedCategory, ignoreCase = true)
-
+            selectedCategory == "All" || video.category.equals(selectedCategory, ignoreCase = true)
         matchesSearch && matchesCategory
     }
 
@@ -68,7 +65,26 @@ fun VideoListScreen(
             .padding(16.dp)
     ) {
 
-        /* ---------- SEARCH ---------- */
+        // ---------- OFFLINE BANNER ----------
+        if (appMode == AppMode.OFFLINE) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFFFE0E0))
+                        .padding(8.dp)
+                ) {
+                    Text(
+                        text = "You are offline",
+                        color = Color.Red,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+
+        // ---------- SEARCH ----------
         item {
             OutlinedTextField(
                 value = searchQuery,
@@ -87,7 +103,7 @@ fun VideoListScreen(
             )
         }
 
-        /* ---------- CATEGORY ---------- */
+        // ---------- CATEGORY ----------
         item {
             CategoryTabs(
                 selectedCategory = selectedCategory,
@@ -97,14 +113,11 @@ fun VideoListScreen(
 
         item { Spacer(modifier = Modifier.height(20.dp)) }
 
-        /* ---------- BANNER ---------- */
-           item {
-               Caros()
-           }
-
+        // ---------- BANNER ----------
+        item { Caros() }
         item { Spacer(modifier = Modifier.height(16.dp)) }
 
-        /* ---------- TITLE ---------- */
+        // ---------- TITLE ----------
         item {
             Text(
                 text = "All Videos",
@@ -113,13 +126,10 @@ fun VideoListScreen(
             )
         }
 
-        /* ---------- VIDEO LIST ---------- */
+        // ---------- VIDEO LIST ----------
         items(filteredVideos) { video ->
             val encodedUrl = remember(video.streamUrl) {
-                URLEncoder.encode(
-                    video.streamUrl,
-                    StandardCharsets.UTF_8.toString()
-                )
+                URLEncoder.encode(video.streamUrl, StandardCharsets.UTF_8.toString())
             }
 
             Card(
@@ -132,13 +142,10 @@ fun VideoListScreen(
             ) {
                 Row(
                     modifier = Modifier
-                        .clickable {
-                            navController.navigate("videoplayer/$encodedUrl")
-                        }
+                        .clickable { navController.navigate("videoplayer/$encodedUrl") }
                         .padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-
                     Image(
                         painter = painterResource(id = getPosterForVideo(video.title)),
                         contentDescription = "Video thumbnail",
@@ -146,33 +153,23 @@ fun VideoListScreen(
                         modifier = Modifier
                             .size(96.dp)
                             .clip(RoundedCornerShape(14.dp))
-                            .border(
-                                1.dp,
-                                Color(0xFFEDEDED),
-                                RoundedCornerShape(14.dp)
-                            )
+                            .border(1.dp, Color(0xFFEDEDED), RoundedCornerShape(14.dp))
                     )
 
                     Spacer(modifier = Modifier.width(14.dp))
 
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
-
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = video.title,
                             style = MaterialTheme.typography.titleMedium,
                             maxLines = 2
                         )
-
                         Spacer(modifier = Modifier.height(6.dp))
-
                         Text(
                             text = video.category,
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.Gray
                         )
-
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Surface(
@@ -182,16 +179,11 @@ fun VideoListScreen(
                             modifier = Modifier.clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
-                            ) {
-                                viewModel.downloadVideo(video)
-                            }
+                            ) { viewModel.download(video) }
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(
-                                    horizontal = 14.dp,
-                                    vertical = 8.dp
-                                )
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Rounded.Download,
@@ -208,17 +200,9 @@ fun VideoListScreen(
                     }
                 }
             }
-
-
         }
-
-
-        }
-            }
-
-
-
-
+    }
+}
 
 @Composable
 fun SlidingImageCarousel(imageResIds: List<Int>) {
