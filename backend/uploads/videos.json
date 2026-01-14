@@ -1,0 +1,57 @@
+[
+  {
+    "filename": "captain_america.mp4",
+    "url": "/api/stream/captain_america.mp4",
+    "category": "Movies"
+  },
+  {
+    "filename": "golmaal.mp4",
+    "url": "/api/stream/golmaal.mp4",
+    "category": "Movies"
+  },
+  {
+    "filename": "phir_hera_pheri.mp4",
+    "url": "/api/stream/phir_hera_pheri.mp4",
+    "category": "Movies"
+  },
+  {
+    "filename": "uri.mp4",
+    "url": "/api/stream/uri.mp4",
+    "category": "Movies"
+  },
+  {
+    "filename": "mrbean.mp4",
+    "url": "/api/stream/mrbean.mp4",
+    "category": "TV Shows"
+  },
+  {
+    "filename": "superasiacup23.mp4",
+    "url": "/api/stream/superasiacup23.mp4",
+    "category": "Sports"
+  },
+  {
+    "filename": "footballseries.mp4",
+    "url": "/api/stream/footballseries.mp4",
+    "category": "Sports"
+  },
+  {
+    "filename": "jayshetty.mp4",
+    "url": "/api/stream/jayshetty.mp4",
+    "category": "Live TV"
+  },
+  {
+    "filename": "Screen Recording 2025-12-19 181554.mp4",
+    "url": "/api/stream/Screen Recording 2025-12-19 181554.mp4",
+    "category": "Movies"
+  },
+  {
+    "filename": "Screen Recording 2025-12-19 181554.mp4",
+    "url": "/api/stream/Screen Recording 2025-12-19 181554.mp4",
+    "category": "Movies"
+  },
+  {
+    "filename": "Screen Recording 2025-12-19 181554.mp4",
+    "url": "/api/stream/Screen Recording 2025-12-19 181554.mp4",
+    "category": "Movies"
+  }
+]
