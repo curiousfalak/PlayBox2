@@ -20,7 +20,7 @@ It provides:
 
 Click below to watch a short demo of the app:
 
-[![PlayBox2 Demo](https://img.youtube.com/vi/YOUR_VIDEO_ID/0.jpg)](https://youtu.be/YOUR_VIDEO_ID)
+[![PlayBox2 Demo](https://img.youtube.com/vi/YOUR_VIDEO_ID/0.jpg)](https://youtu.be/00FonEQys88)
 
 
 
