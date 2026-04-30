@@ -20,7 +20,9 @@ It provides:
 
 Click below to watch a short demo of the app:
 
-(https://youtu.be/00FonEQys88)
+![App Demo](assets/demo.gif)
+
+▶️ Full video: https://youtu.be/00FonEQys88
 
 
 
