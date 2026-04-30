@@ -16,14 +16,13 @@ It provides:
 
 ---
 
-## 🎥 Demo Video
 
-App View:
 ## 📸 Screenshots
 
 <img src="assets/playBoxServer.png" width="250"/> 
-<img src="assets/details.png" width="250"/> 
-<img src="assets/profile.png" width="250"/>
+<img src="assets/playboxHome.png" width="250"/> 
+<img src="assets/playboxS1.png" width="250"/>
+<img src="assets/downLoads.png" width="250"/>
 
 ▶️ Full video: https://youtu.be/00FonEQys88
 
