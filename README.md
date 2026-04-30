@@ -18,9 +18,12 @@ It provides:
 
 ## 🎥 Demo Video
 
-Click below to watch a short demo of the app:
+App View:
+## 📸 Screenshots
 
-![App Demo](assets/demo.gif)
+<img src="assets/playBoxServer.png" width="250"/> 
+<img src="assets/details.png" width="250"/> 
+<img src="assets/profile.png" width="250"/>
 
 ▶️ Full video: https://youtu.be/00FonEQys88
 
