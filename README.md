@@ -20,9 +20,12 @@ It provides:
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="assets/playboxServer.png" width="2000"/>
+  <img src="assets/playboxServer.png" width="1500"/>
 </p>
+
+
 <p>
+<p>   </p>
   <img src="assets/playboxHome.png" width="220"/>
   <img src="assets/playboxS1.png" width="220"/>
   <img src="assets/downLoads.png" width="220"/>
