@@ -19,10 +19,12 @@ It provides:
 
 ## 📸 Screenshots
 
-<img src="assets/playBoxServer.png" width="250"/> 
-<img src="assets/playboxHome.png" width="250"/> 
-<img src="assets/playboxS1.png" width="250"/>
-<img src="assets/downLoads.png" width="250"/>
+<p align="center">
+  <img src="assets/playBoxServer.png" width="220"/>
+  <img src="assets/playboxHome.png" width="220"/>
+  <img src="assets/playboxS1.png" width="220"/>
+  <img src="assets/downLoads.png" width="220"/>
+</p>
 
 ▶️ Full video: https://youtu.be/00FonEQys88
 
