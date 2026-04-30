@@ -25,8 +25,7 @@ It provides:
 
 
 <p>
-<p>   </p>
-  <img src="assets/playboxHome.png" width="220"/>
+   <br> <img src="assets/playboxHome.png" width="220"/>
   <img src="assets/playboxS1.png" width="220"/>
   <img src="assets/downLoads.png" width="220"/>
 </p>
