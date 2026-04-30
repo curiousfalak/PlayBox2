@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
 
         // 🔹 Retrofit (ONLINE)
         val api = Retrofit.Builder()
-            .baseUrl("http://10.191.62.69:8000/")
+            .baseUrl("http://10.87.124.69:8000")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(VideoApi::class.java)

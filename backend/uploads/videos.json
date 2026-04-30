@@ -53,5 +53,20 @@
     "filename": "Screen Recording 2025-12-19 181554.mp4",
     "url": "/api/stream/Screen Recording 2025-12-19 181554.mp4",
     "category": "Movies"
+  },
+  {
+    "filename": "raj_shamani_.mp4",
+    "url": "/api/stream/raj_shamani_.mp4",
+    "category": "Live TV"
+  },
+  {
+    "filename": "Budbak.mp4",
+    "url": "/api/stream/Budbak.mp4",
+    "category": "TV Shows"
+  },
+  {
+    "filename": "motivation.mp4",
+    "url": "/api/stream/motivation.mp4",
+    "category": "TV Shows"
   }
 ]

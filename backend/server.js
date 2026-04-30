@@ -29,7 +29,7 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log("`🚀 Server running on http://10.191.62.69:8000");
+  console.log("`🚀 Server running on http://10.87.124.69:8000");
 
 });
 

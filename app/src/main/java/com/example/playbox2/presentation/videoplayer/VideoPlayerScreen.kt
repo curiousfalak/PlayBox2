@@ -37,7 +37,7 @@ fun isLandscape(): Boolean {
     val configuration = LocalConfiguration.current
     return configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 }
-
+//val videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
 /* ---------- VIDEO PLAYER SCREEN ---------- */
 @OptIn(UnstableApi::class)
 @Composable
@@ -87,6 +87,7 @@ fun VideoPlayerScreen(
         )
 
     LaunchedEffect(videoUrl) {
+        Log.d("FINAL_URL", videoUrl)
         exoPlayer.setMediaSource(mediaSource)
         exoPlayer.playWhenReady = true
         exoPlayer.prepare()

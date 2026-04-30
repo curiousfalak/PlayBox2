@@ -95,31 +95,48 @@ router.post('/merge', async (req, res) => {
 // Stream video endpoint
 // --------------------------
 router.get('/stream/:filename', (req, res) => {
-  const file = path.join(uploadPath, req.params.filename);
+  const filename = decodeURIComponent(req.params.filename); // handle spaces
+  const file = path.join(uploadPath, filename);
 
+  console.log("📥 Request received for:", filename);
+  console.log("📂 Full file path:", file);
+
+  // Check if file exists
   if (!fs.existsSync(file)) {
+    console.log("❌ File NOT found at path!");
     return res.status(404).json({ error: 'Video not found' });
   }
+
+  console.log("✅ File FOUND, preparing to stream...");
 
   const stat = fs.statSync(file);
   const fileSize = stat.size;
   const range = req.headers.range;
 
+  console.log("📏 File size:", fileSize);
+  console.log("📡 Range header:", range);
+
+  // If no range → send full video
   if (!range) {
+    console.log("▶️ No range header, sending full video");
+
     res.setHeader('Content-Length', fileSize);
     res.setHeader('Content-Type', 'video/mp4');
+
     fs.createReadStream(file).pipe(res);
     return;
   }
 
+  // Partial content (streaming)
   const parts = range.replace(/bytes=/, '').split('-');
   const start = parseInt(parts[0], 10);
   const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
   const chunksize = end - start + 1;
 
-  console.log(`🎥 Streaming bytes ${start}-${end} of ${req.params.filename}`);
+  console.log(`🎥 Streaming bytes ${start}-${end}`);
 
   const fileStream = fs.createReadStream(file, { start, end });
+
   const head = {
     'Content-Range': `bytes ${start}-${end}/${fileSize}`,
     'Accept-Ranges': 'bytes',
