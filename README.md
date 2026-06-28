@@ -36,26 +36,6 @@ It provides:
 
 ---
 
-## 🗂️ Project Structure
-
-PlayBox2/
-├── android/ # Android app
-│ ├── app/
-│ ├── build.gradle
-│ └── ...
-├── backend/ # Node.js + Express server
-│ ├── server.js
-│ ├── routes/
-│ ├── uploads/
-│ ├── chunks/
-│ └── package.json
-├── README.md
-└── .github/
-
-
-
----
-
 ## ⚡ Key Features
 
 ### Android App (Jetpack Compose + ExoPlayer)
