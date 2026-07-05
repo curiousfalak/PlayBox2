@@ -16,36 +16,21 @@ It provides:
 
 ---
 
-## 🎥 Demo Video
 
-App View:
 ## 📸 Screenshots
 
-<img src="assets/playBoxServer.png" width="250"/> 
-<img src="assets/details.png" width="250"/> 
-<img src="assets/profile.png" width="250"/>
+<p align="center">
+  <img src="assets/playboxServer.png" width="1500"/>
+</p>
+
+
+<p>
+   <br> <img src="assets/playboxHome.png" width="220"/>
+  <img src="assets/playboxS1.png" width="220"/>
+  <img src="assets/downLoads.png" width="220"/>
+</p>
 
 ▶️ Full video: https://youtu.be/00FonEQys88
-
-
-
----
-
-## 🗂️ Project Structure
-
-PlayBox2/
-├── android/ # Android app
-│ ├── app/
-│ ├── build.gradle
-│ └── ...
-├── backend/ # Node.js + Express server
-│ ├── server.js
-│ ├── routes/
-│ ├── uploads/
-│ ├── chunks/
-│ └── package.json
-├── README.md
-└── .github/
 
 
 
