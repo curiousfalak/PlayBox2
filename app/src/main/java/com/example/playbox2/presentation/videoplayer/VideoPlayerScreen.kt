@@ -2,6 +2,7 @@ package com.example.playbox2.presentation.videoplayer
 
 import android.content.res.Configuration
 import android.net.Uri
+import android.os.SystemClock
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -23,11 +24,12 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.PlayerView
-import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
+import androidx.media3.ui.PlayerView
 import com.example.playbox2.data.local.VideoCache
 
 
@@ -37,7 +39,7 @@ fun isLandscape(): Boolean {
     val configuration = LocalConfiguration.current
     return configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 }
-//val videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+
 /* ---------- VIDEO PLAYER SCREEN ---------- */
 @OptIn(UnstableApi::class)
 @Composable
@@ -53,49 +55,89 @@ fun VideoPlayerScreen(
     var isPlaying by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
-    Log.setLogLevel(Log.LOG_LEVEL_ALL)
+
+    // set log level once, not on every recomposition
+    LaunchedEffect(Unit) { Log.setLogLevel(Log.LOG_LEVEL_ALL) }
+
+    val cache = remember { VideoCache.get(context) }
+
+    // measurement state (plain holders, so updating them doesn't trigger recomposition)
+    val t0 = remember { LongArray(1) }
+    val seekStart = remember { LongArray(1) }
+
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
-
 
             addListener(object : Player.Listener {
 
                 override fun onPlaybackStateChanged(state: Int) {
                     isBuffering = state == Player.STATE_BUFFERING
+                    if (state == Player.STATE_READY && seekStart[0] != 0L) {
+                        Log.d("Perf", "seek latency = ${SystemClock.elapsedRealtime() - seekStart[0]} ms")
+                        seekStart[0] = 0L
+                    }
                 }
 
                 override fun onIsPlayingChanged(playing: Boolean) {
                     isPlaying = playing
                 }
 
+                override fun onPositionDiscontinuity(
+                    oldPosition: Player.PositionInfo,
+                    newPosition: Player.PositionInfo,
+                    reason: Int
+                ) {
+                    if (reason == Player.DISCONTINUITY_REASON_SEEK) {
+                        seekStart[0] = SystemClock.elapsedRealtime()
+                    }
+                }
+
                 override fun onPlayerError(error: PlaybackException) {
                     hasError = true
+                    Log.e("Perf", "error: ${error.message}")
+                }
+            })
+
+            addAnalyticsListener(object : AnalyticsListener {
+                override fun onRenderedFirstFrame(
+                    eventTime: AnalyticsListener.EventTime,
+                    output: Any,
+                    renderTimeMs: Long
+                ) {
+                    if (t0[0] != 0L) {
+                        Log.d("Perf", "startup = ${SystemClock.elapsedRealtime() - t0[0]} ms")
+                        t0[0] = 0L
+                    }
                 }
             })
         }
     }
-    val dataSourceFactory = CacheDataSource.Factory()
-        .setCache(VideoCache.get(context))
-        .setUpstreamDataSourceFactory(
-            DefaultDataSource.Factory(context)
-        )
-        .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
 
-    val mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory)
-        .createMediaSource(
-            MediaItem.fromUri(Uri.parse(videoUrl))
-        )
+    // built once per URL, not on every recomposition
+    val mediaSource = remember(videoUrl) {
+        val dataSourceFactory = CacheDataSource.Factory()
+            .setCache(cache)
+            .setUpstreamDataSourceFactory(DefaultDataSource.Factory(context))
+            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+
+        ProgressiveMediaSource.Factory(dataSourceFactory)
+            .createMediaSource(MediaItem.fromUri(Uri.parse(videoUrl)))
+    }
 
     LaunchedEffect(videoUrl) {
         Log.d("FINAL_URL", videoUrl)
+        Log.d("Cache", "before play: used=${cache.cacheSpace / 1024} KB")
+        t0[0] = SystemClock.elapsedRealtime()
         exoPlayer.setMediaSource(mediaSource)
         exoPlayer.playWhenReady = true
         exoPlayer.prepare()
     }
 
-
     DisposableEffect(Unit) {
-        onDispose { exoPlayer.release() }
+        onDispose {
+            Log.d("Cache", "after play: used=${cache.cacheSpace / 1024} KB")
+            exoPlayer.release()
+        }
     }
 
     Box(
@@ -153,12 +195,7 @@ fun VideoPlayerScreen(
                 }
             )
 
-
-
-
             Spacer(modifier = Modifier.height(16.dp))
-
-
 
             /* ---------- EXTRA SPACE FOR SCROLL ---------- */
             if (landscape) {

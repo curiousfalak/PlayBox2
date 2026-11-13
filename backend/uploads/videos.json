@@ -68,5 +68,10 @@
     "filename": "motivation.mp4",
     "url": "/api/stream/motivation.mp4",
     "category": "TV Shows"
+  },
+  {
+    "filename": "Screen Recording 2026-11-03 213122.mp4",
+    "url": "/api/stream/Screen Recording 2026-11-03 213122.mp4",
+    "category": "TV Shows"
   }
 ]

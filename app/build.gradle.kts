@@ -54,7 +54,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
-    implementation(libs.androidx.ui)
+
+    implementation(libs.androidx.compose.runtime)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -79,7 +80,7 @@ dependencies {
     // OKHttp (recommended for streaming)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
-    implementation("androidx.media3:media3-common:1.4.1")
+    implementation("androidx.media3:media3-common:1.3.1")
 
 
 
@@ -99,12 +100,12 @@ dependencies {
 
     implementation("androidx.media3:media3-exoplayer-dash:1.3.1")
     implementation("androidx.media3:media3-datasource:1.3.1")
-
+    implementation("androidx.media3:media3-database:1.3.1")
 
     //room
     val room_version = "2.8.4"
     implementation("androidx.room:room-runtime:$room_version")
-    ksp("androidx.room:room-compiler:2.8.4")
+     ksp("androidx.room:room-compiler:2.8.4")
     annotationProcessor("androidx.room:room-compiler:$room_version")
     implementation("androidx.room:room-ktx:$room_version")
 
