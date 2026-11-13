@@ -1,90 +1,172 @@
-// routes/video.js
+// routes/video.js  (Backblaze B2 / Cloudflare R2 storage + MongoDB metadata)
 const express = require('express');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const { Readable } = require('stream');
 const multer = require('multer');
-const ffmpeg = require('fluent-ffmpeg');
-const ffmpegPath = require('ffmpeg-static');
-
-ffmpeg.setFfmpegPath(ffmpegPath);
+const mongoose = require('mongoose');
+const {
+  S3Client,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} = require('@aws-sdk/client-s3');
+const { Upload } = require('@aws-sdk/lib-storage');
 
 const router = express.Router();
 
-// Folder paths
-const uploadPath = path.join(__dirname, '../uploads'); // merged videos
-const chunkPath = path.join(__dirname, '../chunks');   // temporary chunks
-const metaFile = path.join(uploadPath, 'videos.json');
+// --------------------------
+// Config
+// --------------------------
+const {
+  MONGO_URI,
+  S3_ENDPOINT,
+  S3_REGION,
+  S3_BUCKET,
+  S3_KEY_ID,
+  S3_SECRET,
+  UPLOAD_KEY,
+} = process.env;
 
-// Ensure directories exist
-if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
-if (!fs.existsSync(chunkPath)) fs.mkdirSync(chunkPath, { recursive: true });
-if (!fs.existsSync(metaFile)) fs.writeFileSync(metaFile, JSON.stringify([]));
+const missing = ['MONGO_URI', 'S3_ENDPOINT', 'S3_REGION', 'S3_BUCKET', 'S3_KEY_ID', 'S3_SECRET']
+  .filter((k) => !process.env[k]);
+if (missing.length) console.error('❌ Missing env vars:', missing.join(', '));
 
 // --------------------------
-// Multer storage for chunks
+// MongoDB
+// --------------------------
+const videoSchema = new mongoose.Schema({
+  filename: { type: String, required: true, unique: true },
+  key: { type: String, required: true },
+  url: { type: String, required: true },
+  category: { type: String, default: 'Movies' },
+  size: Number,
+  createdAt: { type: Date, default: Date.now },
+});
+const Video = mongoose.models.Video || mongoose.model('Video', videoSchema);
+
+if (MONGO_URI) {
+  mongoose
+    .connect(MONGO_URI)
+    .then(() => console.log('✅ MongoDB connected'))
+    .catch((err) => console.error('❌ MongoDB connection error:', err.message));
+}
+
+// --------------------------
+// S3-compatible client (B2 / R2)
+// --------------------------
+const s3 = new S3Client({
+  endpoint: S3_ENDPOINT,
+  region: S3_REGION || 'auto',
+  credentials: { accessKeyId: S3_KEY_ID, secretAccessKey: S3_SECRET },
+  forcePathStyle: true,
+  // Newer SDK versions add CRC32 checksums by default, which B2 and some
+  // S3-compatible stores reject. Only send them when required.
+  requestChecksumCalculation: 'WHEN_REQUIRED',
+  responseChecksumValidation: 'WHEN_REQUIRED',
+});
+
+// --------------------------
+// Helpers
+// --------------------------
+const chunkPath = path.join(os.tmpdir(), 'playbox-chunks');
+fs.mkdirSync(chunkPath, { recursive: true });
+
+// Strip any directory parts so a filename can't escape the chunk folder.
+const safeName = (name) => path.basename(String(name || ''));
+
+// Optional API key check for upload endpoints.
+function requireKey(req, res, next) {
+  if (!UPLOAD_KEY) return next();
+  if (req.get('x-api-key') === UPLOAD_KEY) return next();
+  return res.status(401).json({ error: 'Unauthorized' });
+}
+
+// --------------------------
+// Multer: temporary chunk storage on local disk
 // --------------------------
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, chunkPath),
-  filename: (req, file, cb) => cb(null, file.originalname),
+  filename: (req, file, cb) => cb(null, safeName(file.originalname)),
 });
 const upload = multer({ storage });
 
 // --------------------------
+// Health check
+// --------------------------
+router.get('/health', (req, res) => {
+  res.json({ ok: true });
+});
+
+// --------------------------
 // Upload individual chunks
 // --------------------------
-router.post('/upload-chunk', upload.single('chunk'), (req, res) => {
-  console.log(`📦 Received chunk: ${req.file.originalname}`);
+router.post('/upload-chunk', requireKey, upload.single('chunk'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No chunk received' });
+  console.log(`📦 Received chunk: ${req.file.filename}`);
   res.json({ message: 'Chunk received successfully' });
 });
 
 // --------------------------
-// Merge chunks into a full video
+// Merge chunks and stream them straight to the bucket
 // --------------------------
-router.post('/merge', async (req, res) => {
+router.post('/merge', requireKey, async (req, res) => {
+  const filename = safeName(req.body && req.body.filename);
+  const total = parseInt(req.body && req.body.totalChunks, 10);
+  const category = (req.body && req.body.category) || 'Movies';
+
+  if (!filename || !Number.isInteger(total) || total < 1) {
+    return res.status(400).json({ error: 'Missing filename or totalChunks' });
+  }
+
+  const chunkFiles = [];
+  for (let i = 0; i < total; i++) {
+    const f = path.join(chunkPath, `${filename}-chunk${i}`);
+    if (!fs.existsSync(f)) {
+      return res.status(400).json({ error: `Missing chunk ${i}` });
+    }
+    chunkFiles.push(f);
+  }
+
+  const key = `videos/${Date.now()}-${filename}`;
+
   try {
-    const { filename, totalChunks, category } = req.body;
+    console.log(`🧩 Merging ${total} chunks into ${key}`);
 
-    if (!filename || !totalChunks) {
-      return res.status(400).json({ error: 'Missing filename or totalChunks' });
-    }
+    // Read chunks one after another as a single stream (low memory use).
+    const body = Readable.from(
+      (async function* () {
+        for (const f of chunkFiles) {
+          for await (const buf of fs.createReadStream(f)) yield buf;
+        }
+      })()
+    );
 
-    const mergedPath = path.join(uploadPath, filename);
-    const writeStream = fs.createWriteStream(mergedPath);
-
-    console.log(`🧩 Starting merge of ${totalChunks} chunks into ${mergedPath}`);
-
-    for (let i = 0; i < totalChunks; i++) {
-      const chunkFile = path.join(chunkPath, `${filename}-chunk${i}`);
-      if (!fs.existsSync(chunkFile)) {
-        return res.status(400).json({ error: `Missing chunk ${i}` });
-      }
-
-      const data = fs.readFileSync(chunkFile);
-      writeStream.write(data);
-      fs.unlinkSync(chunkFile); // cleanup after merging
-    }
-
-    writeStream.end();
-
-    writeStream.on('finish', async () => {
-      console.log(`✅ Merged video saved as ${filename}`);
-
-      // Save metadata with category
-      const videos = JSON.parse(fs.readFileSync(metaFile));
-      videos.push({
-        filename,
-        url: `/api/stream/${filename}`,
-        category: category || "Movies"
-      });
-      fs.writeFileSync(metaFile, JSON.stringify(videos, null, 2));
-
-      res.json({
-        message: 'File merged successfully',
-        file: filename,
-        path: `/api/stream/${filename}`
-      });
+    const uploader = new Upload({
+      client: s3,
+      params: { Bucket: S3_BUCKET, Key: key, Body: body, ContentType: 'video/mp4' },
+      queueSize: 2,
+      partSize: 8 * 1024 * 1024,
     });
+    await uploader.done();
 
+    // Replace any earlier upload with the same filename.
+    const existing = await Video.findOne({ filename });
+    const size = chunkFiles.reduce((sum, f) => sum + fs.statSync(f).size, 0);
+    const doc = await Video.findOneAndUpdate(
+      { filename },
+      { filename, key, url: `/api/stream/${encodeURIComponent(filename)}`, category, size },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+    if (existing && existing.key !== key) {
+      s3.send(new DeleteObjectCommand({ Bucket: S3_BUCKET, Key: existing.key })).catch(() => {});
+    }
+
+    // Cleanup temp chunks only after a successful upload.
+    for (const f of chunkFiles) fs.unlink(f, () => {});
+
+    console.log(`✅ Saved ${filename}`);
+    res.json({ message: 'File merged successfully', file: filename, path: doc.url });
   } catch (err) {
     console.error('❌ Error merging:', err);
     res.status(500).json({ error: err.message });
@@ -92,69 +174,58 @@ router.post('/merge', async (req, res) => {
 });
 
 // --------------------------
-// Stream video endpoint
+// Stream video (supports Range requests)
 // --------------------------
-router.get('/stream/:filename', (req, res) => {
-  const filename = decodeURIComponent(req.params.filename); // handle spaces
-  const file = path.join(uploadPath, filename);
+router.get('/stream/:filename', async (req, res) => {
+  try {
+    const filename = safeName(decodeURIComponent(req.params.filename));
+    const video = await Video.findOne({ filename }).lean();
+    if (!video) return res.status(404).json({ error: 'Video not found' });
 
-  console.log("📥 Request received for:", filename);
-  console.log("📂 Full file path:", file);
+    const range = req.headers.range;
+    const obj = await s3.send(
+      new GetObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: video.key,
+        ...(range ? { Range: range } : {}),
+      })
+    );
 
-  // Check if file exists
-  if (!fs.existsSync(file)) {
-    console.log("❌ File NOT found at path!");
-    return res.status(404).json({ error: 'Video not found' });
+    const headers = {
+      'Content-Type': 'video/mp4',
+      'Accept-Ranges': 'bytes',
+      'Content-Length': obj.ContentLength,
+    };
+    if (range && obj.ContentRange) {
+      headers['Content-Range'] = obj.ContentRange;
+      res.writeHead(206, headers);
+    } else {
+      res.writeHead(200, headers);
+    }
+
+    // Stop reading from the bucket if the player disconnects.
+    res.on('close', () => obj.Body.destroy());
+    obj.Body.on('error', () => res.destroy());
+    obj.Body.pipe(res);
+  } catch (err) {
+    if (err.name === 'NoSuchKey') return res.status(404).json({ error: 'Video not found' });
+    if (err.name === 'InvalidRange' || err.$metadata?.httpStatusCode === 416) {
+      return res.status(416).end();
+    }
+    console.error('❌ Stream error:', err);
+    if (!res.headersSent) res.status(500).json({ error: err.message });
   }
-
-  console.log("✅ File FOUND, preparing to stream...");
-
-  const stat = fs.statSync(file);
-  const fileSize = stat.size;
-  const range = req.headers.range;
-
-  console.log("📏 File size:", fileSize);
-  console.log("📡 Range header:", range);
-
-  // If no range → send full video
-  if (!range) {
-    console.log("▶️ No range header, sending full video");
-
-    res.setHeader('Content-Length', fileSize);
-    res.setHeader('Content-Type', 'video/mp4');
-
-    fs.createReadStream(file).pipe(res);
-    return;
-  }
-
-  // Partial content (streaming)
-  const parts = range.replace(/bytes=/, '').split('-');
-  const start = parseInt(parts[0], 10);
-  const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-  const chunksize = end - start + 1;
-
-  console.log(`🎥 Streaming bytes ${start}-${end}`);
-
-  const fileStream = fs.createReadStream(file, { start, end });
-
-  const head = {
-    'Content-Range': `bytes ${start}-${end}/${fileSize}`,
-    'Accept-Ranges': 'bytes',
-    'Content-Length': chunksize,
-    'Content-Type': 'video/mp4',
-  };
-
-  res.writeHead(206, head);
-  fileStream.pipe(res);
 });
 
 // --------------------------
-// List all uploaded videos (with category)
+// List all videos
 // --------------------------
-router.get('/videos', (req, res) => {
+router.get('/videos', async (req, res) => {
   try {
-    const videos = JSON.parse(fs.readFileSync(metaFile));
-    res.json(videos);
+    const videos = await Video.find({}, 'filename url category size createdAt')
+      .sort({ createdAt: 1 })
+      .lean();
+    res.json(videos.map(({ _id, ...v }) => v));
   } catch (err) {
     console.error('❌ Error listing videos:', err);
     res.status(500).json({ error: err.message });
