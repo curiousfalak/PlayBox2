@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
 
         // 🔹 Retrofit (ONLINE)
         val api = Retrofit.Builder()
-            .baseUrl("http://10.99.163.69:8000")
+            .baseUrl("https://playbox2.onrender.com/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(VideoApi::class.java)

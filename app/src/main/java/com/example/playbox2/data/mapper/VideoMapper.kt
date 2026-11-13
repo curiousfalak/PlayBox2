@@ -5,7 +5,7 @@ import com.example.playbox2.data.remote.dto.VideoDto
 
 
 fun VideoDto.toVideo(): Video {
-    val baseUrl = "http://10.99.163.69:8000"
+    val baseUrl = "https://playbox2.onrender.com"
     return Video(
         id = filename,
         title = filename,
